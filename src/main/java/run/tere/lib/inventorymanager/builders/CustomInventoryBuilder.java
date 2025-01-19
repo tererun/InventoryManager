@@ -1,6 +1,5 @@
 package run.tere.lib.inventorymanager.builders;
 
-import org.checkerframework.checker.units.qual.C;
 import run.tere.lib.inventorymanager.managers.PluginInventoryManager;
 import run.tere.lib.inventorymanager.models.ClickEvent;
 import run.tere.lib.inventorymanager.models.CustomInventory;
