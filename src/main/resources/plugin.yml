@@ -1,0 +1,4 @@
+name: InventoryManager
+version: '1.0.0'
+main: run.tere.lib.inventorymanager.InventoryManager
+api-version: '1.21'
