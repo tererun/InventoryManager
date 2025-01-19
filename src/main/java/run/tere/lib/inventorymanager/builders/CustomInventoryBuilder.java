@@ -40,8 +40,8 @@ public class CustomInventoryBuilder<T> {
         return this;
     }
 
-    public CustomInventoryBuilder<T> addPlaceHolder(Character character, CustomItem<T> customItem) {
-        this.customItems.put(character, customItem);
+    public CustomInventoryBuilder<T> addPlaceHolder(CustomItem<T> customItem) {
+        this.customItems.put(customItem.getPlaceHolder(), customItem);
         return this;
     }
 
