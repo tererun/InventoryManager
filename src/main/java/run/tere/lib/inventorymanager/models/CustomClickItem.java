@@ -1,7 +1,5 @@
 package run.tere.lib.inventorymanager.models;
 
-import org.bukkit.inventory.ItemStack;
-
 public class CustomClickItem<T> extends CustomItem<T> {
 
     private final ClickEvent<T> clickEvent;

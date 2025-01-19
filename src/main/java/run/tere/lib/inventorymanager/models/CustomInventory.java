@@ -11,8 +11,6 @@ import java.util.List;
 
 public class CustomInventory<T> {
 
-    private final Class<T> type;
-
     private Plugin plugin;
     private Inventory inventory;
 
@@ -23,7 +21,6 @@ public class CustomInventory<T> {
     private List<String> layout;
 
     public CustomInventory(
-            Class<T> type,
             Plugin plugin,
             String title,
             int size,
@@ -32,7 +29,6 @@ public class CustomInventory<T> {
             HashMap<Character, CustomItem<T>> customItems,
             List<String> layout
     ) {
-        this.type = type;
         this.plugin = plugin;
         this.inventory = Bukkit.createInventory(null, size, title);
         this.fetch = fetch;
@@ -63,10 +59,6 @@ public class CustomInventory<T> {
                 }
             }
         });
-    }
-
-    public Class<T> getType() {
-        return type;
     }
 
     public T getLastFetchResult() {

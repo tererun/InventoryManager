@@ -76,7 +76,7 @@ public class CustomInventoryBuilder<T> {
             throw new IllegalArgumentException("Layout size must be equal to size / 9.");
         }
 
-        return new CustomInventory<>(type, pluginInventoryManager.getPlugin(), title, size, fetch, clickEvent, customItems, layout);
+        return new CustomInventory<>(pluginInventoryManager.getPlugin(), title, size, fetch, clickEvent, customItems, layout);
     }
 
 }
