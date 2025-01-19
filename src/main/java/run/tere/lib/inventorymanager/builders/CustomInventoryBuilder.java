@@ -19,9 +19,8 @@ public class CustomInventoryBuilder<T> {
     private ClickEvent<T> clickEvent;
     private HashMap<Character, CustomItem<T>> customItems;
     private List<String> layout;
-    private Class<T> type;
 
-    public CustomInventoryBuilder(PluginInventoryManager pluginInventoryManager, Class<T> type) {
+    public CustomInventoryBuilder(PluginInventoryManager pluginInventoryManager) {
         this.pluginInventoryManager = pluginInventoryManager;
         this.title = "";
         this.size = 54;
@@ -29,7 +28,6 @@ public class CustomInventoryBuilder<T> {
         this.clickEvent = null;
         this.customItems = new HashMap<>();
         this.layout = null;
-        this.type = type;
     }
 
     public CustomInventoryBuilder<T> setTitle(String title) {
