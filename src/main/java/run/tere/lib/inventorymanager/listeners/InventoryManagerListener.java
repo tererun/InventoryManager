@@ -12,6 +12,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import run.tere.lib.inventorymanager.managers.InnerPluginInventoryManager;
 import run.tere.lib.inventorymanager.managers.PluginInventoryManager;
+import run.tere.lib.inventorymanager.models.ClickEvent;
 import run.tere.lib.inventorymanager.models.CustomClickItem;
 import run.tere.lib.inventorymanager.models.CustomInventory;
 import run.tere.lib.inventorymanager.models.CustomItem;
@@ -39,7 +40,7 @@ public class InventoryManagerListener implements Listener {
 
         e.setCancelled(true);
 
-        onRawClick(e, customInventory);
+        onClickRaw(e, customInventory);
         if (itemStack == null) return;
         PersistentDataContainer container = itemStack.getItemMeta().getPersistentDataContainer();
         NamespacedKey key = new NamespacedKey(inventoryManager.getPlugin(), "inventory_manager_custom_item");
@@ -58,9 +59,11 @@ public class InventoryManagerListener implements Listener {
         customClickItem.getClickEvent().click(e, e.getCurrentItem(), customInventory.getLastFetchResult());
     }
 
-    public <T> void onRawClick(InventoryClickEvent e, CustomInventory<?> inventory) {
+    public <T> void onClickRaw(InventoryClickEvent e, CustomInventory<?> inventory) {
         CustomInventory<T> customInventory = ((CustomInventory<T>) inventory);
-        customInventory.getOnClickRaw().click(e, e.getCurrentItem(), customInventory.getLastFetchResult());
+        ClickEvent<T> clickEvent = customInventory.getOnClickRaw();
+        if (clickEvent == null) return;
+        clickEvent.click(e, e.getCurrentItem(), customInventory.getLastFetchResult());
     }
 
     @EventHandler
