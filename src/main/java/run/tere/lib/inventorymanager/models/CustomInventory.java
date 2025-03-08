@@ -131,29 +131,38 @@ public class CustomInventory<T> {
         System.out.println("buildPaginationItems: id=" + id + ", currentPage=" + currentPage + ", itemRowIndex=" + itemRowIndex + ", startIndex=" + startIndex);
         
         // 最初は最後のページと仮定
-        if (isLastItemsRow(id, i)) {
-            state.setLastPage(true);
-        }
+        state.setLastPage(true);
+        
+        // アイテムの総数を取得（デバッグ用）
+        int totalItems = 0;
+        boolean foundItems = false;
         
         for (int j = 0; j < 9; j++) {
-            // 実際のインデックスを計算（ページ * 全行のアイテム数 + この行の開始インデックス + 列インデックス）
+            // 実際のインデックスを計算
             int actualIndex = startIndex + j;
             PaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, currentPage, actualIndex);
             CustomItem<T> customItem = result.getItem();
             if (customItem == null) continue;
             
+            foundItems = true;
+            totalItems++;
+            
             ItemStack itemStack = customItem.build(paginationT, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + j, itemStack);
             paginationCustomItems.put(customItem.getUUID(), customItem);
-            
-            // 最後の行かつ次のアイテムがある場合、最後のページではない
-            if (isLastItemsRow(id, i) && result.hasNext()) {
-                System.out.println("Setting isLastPage to false because there are more items");
-                state.setLastPage(false);
-            }
         }
         
-        System.out.println("After buildPaginationItems: isLastPage=" + state.isLastPage() + ", currentPage=" + state.getCurrentPage());
+        // 次のページがあるかどうかを確認
+        // 次のページのアイテムが存在するかテスト
+        boolean hasNextPage = false;
+        PaginationItemResult<T> testResult = pagination.getBuildPaginationItem().build(paginationT, currentPage + 1, 0);
+        if (testResult.getItem() != null) {
+            hasNextPage = true;
+            state.setLastPage(false);
+            System.out.println("Setting isLastPage to false because there are more items in the next page");
+        }
+        
+        System.out.println("After buildPaginationItems: isLastPage=" + state.isLastPage() + ", currentPage=" + currentPage + ", totalItems=" + totalItems + ", hasNextPage=" + hasNextPage);
     }
     
     // 指定された行が指定されたIDの最後のItems行かどうかを判定
