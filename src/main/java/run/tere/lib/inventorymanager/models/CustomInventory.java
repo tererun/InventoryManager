@@ -3,6 +3,7 @@ package run.tere.lib.inventorymanager.models;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import run.tere.lib.inventorymanager.enums.CustomItemType;
 import run.tere.lib.inventorymanager.utils.SkullUtil;
@@ -41,6 +42,7 @@ public class CustomInventory<T> {
         this.customItems = customItems;
         this.paginations = pagination;
         this.paginationStateMap = new HashMap<>();
+        this.paginationCustomItems = new HashMap<>();
         this.layout = layout;
 
         build();
@@ -49,34 +51,51 @@ public class CustomInventory<T> {
     public void build() {
         if (fetch == null) return;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            T t = fetch.fetch();
-            HashMap<String, T> paginationFetch = new HashMap<>();
-            for (Pagination<T> pagination : paginations.values()) {
-                String id = pagination.getId();
-                paginationFetch.put(id, pagination.getFetch().fetch());
-                paginationStateMap.put(id, new PaginationState(id, 0, false));
-            }
-            if (t == null) return;
-            lastFetchResult = t;
-            if (layout == null) return;
-            for (int i = 0; i < layout.size(); i++) {
-                String layoutLine = layout.get(i);
-                if (layoutLine.endsWith(":Items")) {
-                    buildPaginationItems(layoutLine, i, paginationFetch);
-                    continue;
-                } else if (layoutLine.endsWith(":Menu")) {
-                    continue;
-                }
-                for (int j = 0; j < layoutLine.length(); j++) {
-                    char c = layoutLine.charAt(j);
-                    ItemStack itemStack = null;
-                    if (customItems.containsKey(c)) {
-                        itemStack = customItems.get(c).build(t, plugin, CustomItemType.NORMAL);
+            try {
+                T t = fetch.fetch();
+                HashMap<String, T> paginationFetch = new HashMap<>();
+                for (Pagination<T> pagination : paginations.values()) {
+                    try {
+                        String id = pagination.getId();
+                        T fetchResult = pagination.getFetch().fetch();
+                        paginationFetch.put(id, fetchResult);
+                        paginationStateMap.put(id, new PaginationState(id, 0, false));
+                    } catch (Exception e) {
+                        // ページネーションのフェッチでエラーが発生した場合はログに記録
+                        plugin.getLogger().warning("Error fetching pagination data for " + pagination.getId() + ": " + e.getMessage());
+                        e.printStackTrace();
                     }
-                    inventory.setItem(i * 9 + j, itemStack);
                 }
+                if (t == null) return;
+                lastFetchResult = t;
+                if (layout == null) return;
+                
+                // メインスレッドでUIを更新
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    for (int i = 0; i < layout.size(); i++) {
+                        String layoutLine = layout.get(i);
+                        if (layoutLine.endsWith(":Items")) {
+                            buildPaginationItems(layoutLine, i, paginationFetch);
+                            continue;
+                        } else if (layoutLine.endsWith(":Menu")) {
+                            continue;
+                        }
+                        for (int j = 0; j < layoutLine.length(); j++) {
+                            char c = layoutLine.charAt(j);
+                            ItemStack itemStack = null;
+                            if (customItems.containsKey(c)) {
+                                itemStack = customItems.get(c).build(t, plugin, CustomItemType.NORMAL);
+                            }
+                            inventory.setItem(i * 9 + j, itemStack);
+                        }
+                    }
+                    buildPaginationMenu(paginationFetch, null);
+                });
+            } catch (Exception e) {
+                // メインのフェッチでエラーが発生した場合はログに記録
+                plugin.getLogger().severe("Error building inventory: " + e.getMessage());
+                e.printStackTrace();
             }
-            buildPaginationMenu(paginationFetch, null);
         });
     }
 
@@ -84,16 +103,29 @@ public class CustomInventory<T> {
         String id = layoutLine.replace(":Items", "");
         Pagination<T> pagination = paginations.get(id);
         T paginationT = paginationFetch.get(id);
-        if (pagination == null || paginationT == null) return;
+        PaginationState state = paginationStateMap.get(id);
+        if (pagination == null || paginationT == null || state == null) return;
+        
+        // 現在のページのアイテムをクリア
         for (int j = 0; j < 9; j++) {
-            BuildPaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, 0, j);
-            CustomItem<T> customItem = result.customItem();
+            inventory.setItem(i * 9 + j, null);
+        }
+        
+        // 現在のページに基づいてアイテムを構築
+        int currentPage = state.getCurrentPage();
+        state.setLastPage(true); // 最初は最後のページと仮定
+        
+        for (int j = 0; j < 9; j++) {
+            PaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, currentPage, j);
+            CustomItem<T> customItem = result.getItem();
+            if (customItem == null) continue;
+            
             ItemStack itemStack = customItem.build(paginationT, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + j, itemStack);
             paginationCustomItems.put(customItem.getUUID(), customItem);
-            if (!result.hasNext()) {
-                paginationStateMap.get(id).setLastPage(true);
-                break;
+            
+            if (result.hasNext()) {
+                state.setLastPage(false); // 次のアイテムがあれば最後のページではない
             }
         }
     }
@@ -120,22 +152,56 @@ public class CustomInventory<T> {
         String id = layoutLine.replace(":Menu", "");
         PaginationState state = paginationStateMap.get(id);
         if (state == null) return;
+        
+        // クリア
+        for (int j = 0; j < 9; j++) {
+            inventory.setItem(i * 9 + j, null);
+        }
+        
+        // 戻るボタン
         if (state.getCurrentPage() == 0) {
-            inventory.setItem(i * 9 + 2, null);
+            // 最初のページでは戻るボタンを表示しない
         } else {
             CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> SkullUtil.createSkull("http://textures.minecraft.net/texture/b76230a0ac52af11e4bc84009c6890a4029472f3947b4f465b5b5722881aacc7", "§f< 戻る"), (onClickRaw, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() - 1);
-                buildPagination(id, paginationFetch);
+                // データを再取得してページネーションを更新
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    T paginationT = paginations.get(id).getFetch().fetch();
+                    if (paginationT != null) {
+                        paginationFetch.put(id, paginationT);
+                        buildPagination(id, paginationFetch);
+                    }
+                });
             });
             ItemStack itemStack = customItem.build(null, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + 2, itemStack);
         }
+        
+        // ページ番号表示
+        CustomItem<T> pageNumberItem = new CustomItem<>(' ', (data) -> {
+            ItemStack pageItem = new ItemStack(org.bukkit.Material.PAPER);
+            ItemMeta meta = pageItem.getItemMeta();
+            meta.setDisplayName("§fページ " + (state.getCurrentPage() + 1));
+            pageItem.setItemMeta(meta);
+            return pageItem;
+        });
+        ItemStack pageNumberStack = pageNumberItem.build(null, plugin, CustomItemType.PAGINATION);
+        inventory.setItem(i * 9 + 4, pageNumberStack);
+        
+        // 次へボタン
         if (state.isLastPage()) {
-            inventory.setItem(i * 9 + 6, null);
+            // 最後のページでは次へボタンを表示しない
         } else {
             CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> SkullUtil.createSkull("http://textures.minecraft.net/texture/dbf8b6277cd36266283cb5a9e6943953c783e6ff7d6a2d59d15ad0697e91d43c", "§f次へ >"), (clickEvent, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() + 1);
-                buildPagination(id, paginationFetch);
+                // データを再取得してページネーションを更新
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    T paginationT = paginations.get(id).getFetch().fetch();
+                    if (paginationT != null) {
+                        paginationFetch.put(id, paginationT);
+                        buildPagination(id, paginationFetch);
+                    }
+                });
             });
             ItemStack itemStack = customItem.build(null, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + 6, itemStack);
@@ -143,13 +209,19 @@ public class CustomInventory<T> {
     }
 
     private void buildPagination(String specificLine, HashMap<String, T> paginationFetch) {
-        for (int j = 0; j < layout.size(); j++) {
-            String layoutLine = layout.get(j);
-            if (specificLine.equalsIgnoreCase(layoutLine + ":Items")) {
-                buildPaginationItems(layoutLine, j, paginationFetch);
+        // メインスレッドでUIを更新
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            // 古いページネーションアイテムをクリア
+            paginationCustomItems.clear();
+            
+            for (int j = 0; j < layout.size(); j++) {
+                String layoutLine = layout.get(j);
+                if (layoutLine.equalsIgnoreCase(specificLine + ":Items")) {
+                    buildPaginationItems(layoutLine, j, paginationFetch);
+                }
             }
-        }
-        buildPaginationMenu(paginationFetch, specificLine);
+            buildPaginationMenu(paginationFetch, specificLine);
+        });
     }
 
     public T getLastFetchResult() {
