@@ -10,6 +10,7 @@ public class PaginationState {
         this.id = id;
         this.currentPage = currentPage;
         this.isLastPage = isLastPage;
+        System.out.println("PaginationState created: id=" + id + ", currentPage=" + currentPage + ", isLastPage=" + isLastPage);
     }
 
     public boolean isLastPage() {
@@ -17,6 +18,7 @@ public class PaginationState {
     }
 
     public void setLastPage(boolean lastPage) {
+        System.out.println("Setting isLastPage to " + lastPage + " for id=" + id);
         isLastPage = lastPage;
     }
 
@@ -26,6 +28,7 @@ public class PaginationState {
 
     public void setCurrentPage(int currentPage) {
         if (currentPage < 0) return;
+        System.out.println("Setting currentPage to " + currentPage + " for id=" + id);
         this.currentPage = currentPage;
     }
 

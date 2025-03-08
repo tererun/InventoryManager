@@ -104,7 +104,10 @@ public class CustomInventory<T> {
         Pagination<T> pagination = paginations.get(id);
         T paginationT = paginationFetch.get(id);
         PaginationState state = paginationStateMap.get(id);
-        if (pagination == null || paginationT == null || state == null) return;
+        if (pagination == null || paginationT == null || state == null) {
+            System.out.println("buildPaginationItems: pagination=" + pagination + ", paginationT=" + paginationT + ", state=" + state);
+            return;
+        }
         
         // 現在のページのアイテムをクリア
         for (int j = 0; j < 9; j++) {
@@ -125,6 +128,13 @@ public class CustomInventory<T> {
         // この行の開始インデックスを計算
         int startIndex = itemRowIndex * 9;
         
+        System.out.println("buildPaginationItems: id=" + id + ", currentPage=" + currentPage + ", itemRowIndex=" + itemRowIndex + ", startIndex=" + startIndex);
+        
+        // 最初は最後のページと仮定
+        if (isLastItemsRow(id, i)) {
+            state.setLastPage(true);
+        }
+        
         for (int j = 0; j < 9; j++) {
             // 実際のインデックスを計算（ページ * 全行のアイテム数 + この行の開始インデックス + 列インデックス）
             int actualIndex = startIndex + j;
@@ -138,17 +148,12 @@ public class CustomInventory<T> {
             
             // 最後の行かつ次のアイテムがある場合、最後のページではない
             if (isLastItemsRow(id, i) && result.hasNext()) {
+                System.out.println("Setting isLastPage to false because there are more items");
                 state.setLastPage(false);
             }
         }
         
-        // 最後の行の場合、最後のページかどうかを設定
-        if (isLastItemsRow(id, i)) {
-            // デフォルトでは最後のページと仮定
-            if (!state.isLastPage()) {
-                state.setLastPage(true);
-            }
-        }
+        System.out.println("After buildPaginationItems: isLastPage=" + state.isLastPage() + ", currentPage=" + state.getCurrentPage());
     }
     
     // 指定された行が指定されたIDの最後のItems行かどうかを判定
@@ -182,7 +187,12 @@ public class CustomInventory<T> {
     private void buildPaginationMenuLine(HashMap<String, T> paginationFetch, int i, String layoutLine) {
         String id = layoutLine.replace(":Menu", "");
         PaginationState state = paginationStateMap.get(id);
-        if (state == null) return;
+        if (state == null) {
+            System.out.println("buildPaginationMenuLine: state is null for id=" + id);
+            return;
+        }
+        
+        System.out.println("buildPaginationMenuLine: id=" + id + ", currentPage=" + state.getCurrentPage() + ", isLastPage=" + state.isLastPage());
         
         // クリア
         for (int j = 0; j < 9; j++) {
@@ -191,8 +201,10 @@ public class CustomInventory<T> {
         
         // 戻るボタン
         if (state.getCurrentPage() == 0) {
+            System.out.println("Not showing back button because currentPage=0");
             // 最初のページでは戻るボタンを表示しない
         } else {
+            System.out.println("Showing back button");
             CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> SkullUtil.createSkull("http://textures.minecraft.net/texture/b76230a0ac52af11e4bc84009c6890a4029472f3947b4f465b5b5722881aacc7", "§f< 戻る"), (onClickRaw, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() - 1);
                 // データを再取得してページネーションを更新
@@ -221,8 +233,10 @@ public class CustomInventory<T> {
         
         // 次へボタン
         if (state.isLastPage()) {
+            System.out.println("Not showing next button because isLastPage=true");
             // 最後のページでは次へボタンを表示しない
         } else {
+            System.out.println("Showing next button");
             CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> SkullUtil.createSkull("http://textures.minecraft.net/texture/dbf8b6277cd36266283cb5a9e6943953c783e6ff7d6a2d59d15ad0697e91d43c", "§f次へ >"), (clickEvent, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() + 1);
                 // データを再取得してページネーションを更新
