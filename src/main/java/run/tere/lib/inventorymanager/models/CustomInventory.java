@@ -205,7 +205,14 @@ public class CustomInventory<T> {
             // 最初のページでは戻るボタンを表示しない
         } else {
             System.out.println("Showing back button");
-            CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> SkullUtil.createSkull("http://textures.minecraft.net/texture/b76230a0ac52af11e4bc84009c6890a4029472f3947b4f465b5b5722881aacc7", "§f< 戻る"), (onClickRaw, itemStack, t) -> {
+            CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
+                // 戻るボタン用のアイテム
+                ItemStack itemStack = new ItemStack(org.bukkit.Material.ARROW);
+                ItemMeta meta = itemStack.getItemMeta();
+                meta.setDisplayName("§f< 戻る");
+                itemStack.setItemMeta(meta);
+                return itemStack;
+            }, (onClickRaw, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() - 1);
                 // データを再取得してページネーションを更新
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -237,7 +244,14 @@ public class CustomInventory<T> {
             // 最後のページでは次へボタンを表示しない
         } else {
             System.out.println("Showing next button");
-            CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> SkullUtil.createSkull("http://textures.minecraft.net/texture/dbf8b6277cd36266283cb5a9e6943953c783e6ff7d6a2d59d15ad0697e91d43c", "§f次へ >"), (clickEvent, itemStack, t) -> {
+            CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
+                // 次へボタン用のアイテム
+                ItemStack itemStack = new ItemStack(org.bukkit.Material.ARROW);
+                ItemMeta meta = itemStack.getItemMeta();
+                meta.setDisplayName("§f次へ >");
+                itemStack.setItemMeta(meta);
+                return itemStack;
+            }, (clickEvent, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() + 1);
                 // データを再取得してページネーションを更新
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {

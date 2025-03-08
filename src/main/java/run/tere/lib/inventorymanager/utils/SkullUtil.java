@@ -24,10 +24,7 @@ public class SkullUtil {
         PlayerProfile playerProfile = Bukkit.createPlayerProfile(UUID.randomUUID());
         PlayerTextures texture = playerProfile.getTextures();
         try {
-            String prepare = new String(Base64.getDecoder().decode(urlStr));
-            Matcher matcher = Pattern.compile("[\"{a-zA-Z:]+(http://[a-zA-Z0-9./]+)[}\"]+").matcher(prepare);
-            if (!matcher.matches()) return itemStack;
-            URL url = new URL(matcher.group(1));
+            URL url = new URL(urlStr);
             texture.setSkin(url);
             playerProfile.setTextures(texture);
             skullMeta.setOwnerProfile(playerProfile);
@@ -36,6 +33,14 @@ public class SkullUtil {
             e.printStackTrace();
             return itemStack;
         }
+        return itemStack;
+    }
+
+    public static ItemStack createPlayerSkull(String playerName) {
+        ItemStack itemStack = new ItemStack(Material.PLAYER_HEAD, 1);
+        SkullMeta skullMeta = (SkullMeta) itemStack.getItemMeta();
+        skullMeta.setOwningPlayer(Bukkit.getOfflinePlayer(playerName));
+        itemStack.setItemMeta(skullMeta);
         return itemStack;
     }
 
