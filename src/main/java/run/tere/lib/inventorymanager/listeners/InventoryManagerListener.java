@@ -10,6 +10,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import run.tere.lib.inventorymanager.enums.CustomItemType;
 import run.tere.lib.inventorymanager.managers.InnerPluginInventoryManager;
 import run.tere.lib.inventorymanager.managers.PluginInventoryManager;
 import run.tere.lib.inventorymanager.models.ClickEvent;
@@ -43,11 +44,25 @@ public class InventoryManagerListener implements Listener {
         onClickRaw(e, customInventory);
         if (itemStack == null) return;
         PersistentDataContainer container = itemStack.getItemMeta().getPersistentDataContainer();
-        NamespacedKey key = new NamespacedKey(inventoryManager.getPlugin(), "inventory_manager_custom_item");
-        if (container.has(key, PersistentDataType.STRING)) {
-            String itemKey = container.get(key, PersistentDataType.STRING);
-            for (CustomItem<?> customItem : customInventory.getCustomItems()) {
-                if (!customItem.getUUID().toString().equals(itemKey) || !(customItem instanceof CustomClickItem<?> customClickItem)) continue;
+        NamespacedKey typeKey = new NamespacedKey(inventoryManager.getPlugin(), "inventory_manager_custom_type");
+        if (!container.has(typeKey, PersistentDataType.STRING)) return;
+        if (container.get(typeKey, PersistentDataType.STRING).equalsIgnoreCase(CustomItemType.NORMAL.toString())) {
+            NamespacedKey itemKey = new NamespacedKey(inventoryManager.getPlugin(), "inventory_manager_custom_item");
+            if (container.has(itemKey, PersistentDataType.STRING)) {
+                String itemTag = container.get(itemKey, PersistentDataType.STRING);
+                for (CustomItem<?> customItem : customInventory.getCustomItems()) {
+                    if (!customItem.getUUID().toString().equals(itemTag) || !(customItem instanceof CustomClickItem<?> customClickItem)) continue;
+                    onItemClick(e, customClickItem, customInventory);
+                }
+            }
+        } else if (container.get(typeKey, PersistentDataType.STRING).equalsIgnoreCase(CustomItemType.PAGINATION.toString())) {
+            NamespacedKey itemKey = new NamespacedKey(inventoryManager.getPlugin(), "inventory_manager_custom_item");
+            if (container.has(itemKey, PersistentDataType.STRING)) {
+                String itemTag = container.get(itemKey, PersistentDataType.STRING);
+                UUID paginationUUID = UUID.fromString(itemTag);
+                CustomItem<?> paginationItem = customInventory.getPaginationCustomItems().get(paginationUUID);
+                if (paginationItem == null) return;
+                if (!(paginationItem instanceof CustomClickItem<?> customClickItem)) return;
                 onItemClick(e, customClickItem, customInventory);
             }
         }

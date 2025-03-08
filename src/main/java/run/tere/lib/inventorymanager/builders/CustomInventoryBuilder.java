@@ -1,11 +1,9 @@
 package run.tere.lib.inventorymanager.builders;
 
 import run.tere.lib.inventorymanager.managers.PluginInventoryManager;
-import run.tere.lib.inventorymanager.models.ClickEvent;
-import run.tere.lib.inventorymanager.models.CustomInventory;
-import run.tere.lib.inventorymanager.models.CustomItem;
-import run.tere.lib.inventorymanager.models.Fetch;
+import run.tere.lib.inventorymanager.models.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -18,6 +16,7 @@ public class CustomInventoryBuilder<T> {
     private ClickEvent<T> clickEvent;
     private HashMap<Character, CustomItem<T>> customItems;
     private List<String> layout;
+    private HashMap<String, Pagination<T>> paginations;
 
     public CustomInventoryBuilder(PluginInventoryManager pluginInventoryManager) {
         this.pluginInventoryManager = pluginInventoryManager;
@@ -27,6 +26,7 @@ public class CustomInventoryBuilder<T> {
         this.clickEvent = null;
         this.customItems = new HashMap<>();
         this.layout = null;
+        this.paginations = new HashMap<>();
     }
 
     public CustomInventoryBuilder<T> setTitle(String title) {
@@ -59,6 +59,11 @@ public class CustomInventoryBuilder<T> {
         return this;
     }
 
+    public CustomInventoryBuilder<T> register(Pagination<T> pagination) {
+        this.paginations.put(pagination.getId(), pagination);
+        return this;
+    }
+
     public CustomInventory<T> build() {
         if (size % 9 != 0) {
             throw new IllegalArgumentException("Size must be a multiple of 9.");
@@ -73,7 +78,7 @@ public class CustomInventoryBuilder<T> {
             throw new IllegalArgumentException("Layout size must be equal to size / 9.");
         }
 
-        return new CustomInventory<>(pluginInventoryManager.getPlugin(), title, size, fetch, clickEvent, customItems, layout);
+        return new CustomInventory<>(pluginInventoryManager.getPlugin(), title, size, fetch, clickEvent, customItems, layout, paginations);
     }
 
 }
