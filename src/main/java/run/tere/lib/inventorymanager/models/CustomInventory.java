@@ -113,10 +113,22 @@ public class CustomInventory<T> {
         
         // 現在のページに基づいてアイテムを構築
         int currentPage = state.getCurrentPage();
-        state.setLastPage(true); // 最初は最後のページと仮定
+        
+        // この行が何番目のItems行かを計算
+        int itemRowIndex = 0;
+        for (int k = 0; k < i; k++) {
+            if (k < layout.size() && layout.get(k).equals(id + ":Items")) {
+                itemRowIndex++;
+            }
+        }
+        
+        // この行の開始インデックスを計算
+        int startIndex = itemRowIndex * 9;
         
         for (int j = 0; j < 9; j++) {
-            PaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, currentPage, j);
+            // 実際のインデックスを計算（ページ * 全行のアイテム数 + この行の開始インデックス + 列インデックス）
+            int actualIndex = startIndex + j;
+            PaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, currentPage, actualIndex);
             CustomItem<T> customItem = result.getItem();
             if (customItem == null) continue;
             
@@ -124,10 +136,29 @@ public class CustomInventory<T> {
             inventory.setItem(i * 9 + j, itemStack);
             paginationCustomItems.put(customItem.getUUID(), customItem);
             
-            if (result.hasNext()) {
-                state.setLastPage(false); // 次のアイテムがあれば最後のページではない
+            // 最後の行かつ次のアイテムがある場合、最後のページではない
+            if (isLastItemsRow(id, i) && result.hasNext()) {
+                state.setLastPage(false);
             }
         }
+        
+        // 最後の行の場合、最後のページかどうかを設定
+        if (isLastItemsRow(id, i)) {
+            // デフォルトでは最後のページと仮定
+            if (!state.isLastPage()) {
+                state.setLastPage(true);
+            }
+        }
+    }
+    
+    // 指定された行が指定されたIDの最後のItems行かどうかを判定
+    private boolean isLastItemsRow(String id, int rowIndex) {
+        for (int i = rowIndex + 1; i < layout.size(); i++) {
+            if (layout.get(i).equals(id + ":Items")) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void buildPaginationMenu(HashMap<String, T> paginationFetch, String specificLine) {
