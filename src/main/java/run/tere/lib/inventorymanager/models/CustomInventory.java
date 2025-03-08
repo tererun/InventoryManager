@@ -205,7 +205,7 @@ public class CustomInventory<T> {
             // 最初のページでは戻るボタンを表示しない
         } else {
             System.out.println("Showing back button");
-            CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
+            CustomClickItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
                 // 戻るボタン用のアイテム
                 ItemStack itemStack = new ItemStack(org.bukkit.Material.ARROW);
                 ItemMeta meta = itemStack.getItemMeta();
@@ -213,6 +213,7 @@ public class CustomInventory<T> {
                 itemStack.setItemMeta(meta);
                 return itemStack;
             }, (onClickRaw, itemStack, t) -> {
+                System.out.println("Back button clicked");
                 state.setCurrentPage(state.getCurrentPage() - 1);
                 // データを再取得してページネーションを更新
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -225,6 +226,8 @@ public class CustomInventory<T> {
             });
             ItemStack itemStack = customItem.build(null, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + 2, itemStack);
+            paginationCustomItems.put(customItem.getUUID(), customItem);
+            System.out.println("Added back button with UUID: " + customItem.getUUID());
         }
         
         // ページ番号表示
@@ -237,6 +240,8 @@ public class CustomInventory<T> {
         });
         ItemStack pageNumberStack = pageNumberItem.build(null, plugin, CustomItemType.PAGINATION);
         inventory.setItem(i * 9 + 4, pageNumberStack);
+        paginationCustomItems.put(pageNumberItem.getUUID(), pageNumberItem);
+        System.out.println("Added page number with UUID: " + pageNumberItem.getUUID());
         
         // 次へボタン
         if (state.isLastPage()) {
@@ -244,7 +249,7 @@ public class CustomInventory<T> {
             // 最後のページでは次へボタンを表示しない
         } else {
             System.out.println("Showing next button");
-            CustomItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
+            CustomClickItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
                 // 次へボタン用のアイテム
                 ItemStack itemStack = new ItemStack(org.bukkit.Material.ARROW);
                 ItemMeta meta = itemStack.getItemMeta();
@@ -252,6 +257,7 @@ public class CustomInventory<T> {
                 itemStack.setItemMeta(meta);
                 return itemStack;
             }, (clickEvent, itemStack, t) -> {
+                System.out.println("Next button clicked");
                 state.setCurrentPage(state.getCurrentPage() + 1);
                 // データを再取得してページネーションを更新
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -264,13 +270,18 @@ public class CustomInventory<T> {
             });
             ItemStack itemStack = customItem.build(null, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + 6, itemStack);
+            paginationCustomItems.put(customItem.getUUID(), customItem);
+            System.out.println("Added next button with UUID: " + customItem.getUUID());
         }
     }
 
     private void buildPagination(String specificLine, HashMap<String, T> paginationFetch) {
         // メインスレッドでUIを更新
         Bukkit.getScheduler().runTask(plugin, () -> {
+            System.out.println("Building pagination for " + specificLine);
+            
             // 古いページネーションアイテムをクリア
+            System.out.println("Clearing old pagination items: " + paginationCustomItems.size());
             paginationCustomItems.clear();
             
             for (int j = 0; j < layout.size(); j++) {
@@ -280,6 +291,8 @@ public class CustomInventory<T> {
                 }
             }
             buildPaginationMenu(paginationFetch, specificLine);
+            
+            System.out.println("Pagination built with " + paginationCustomItems.size() + " items");
         });
     }
 
