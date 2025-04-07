@@ -1,14 +1,17 @@
 package run.tere.lib.inventorymanager.models;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import run.tere.lib.inventorymanager.enums.CustomItemType;
-import run.tere.lib.inventorymanager.utils.SkullUtil;
 
-import java.util.*;
+import run.tere.lib.inventorymanager.enums.CustomItemType;
 
 public class CustomInventory<T> {
 
@@ -124,19 +127,18 @@ public class CustomInventory<T> {
             }
         }
         
-        // この行の開始インデックスを計算
+        int itemRowsCount = countItemsRows(id);
+        int itemsPerPage = itemRowsCount * 9;
         int startIndex = itemRowIndex * 9;
         
-        // 最初は最後のページと仮定
         state.setLastPage(true);
         
-        // アイテムの総数を取得
         int totalItems = 0;
         boolean foundItems = false;
         
         for (int j = 0; j < 9; j++) {
-            // 実際のインデックスを計算
-            int actualIndex = startIndex + j;
+            int actualIndex = currentPage * itemsPerPage + startIndex + j;
+            
             PaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, currentPage, actualIndex);
             CustomItem<T> customItem = result.getItem();
             if (customItem == null) continue;
@@ -149,15 +151,12 @@ public class CustomInventory<T> {
             paginationCustomItems.put(customItem.getUUID(), customItem);
         }
         
-        // 次のページがあるかどうかを確認
-        // 次のページのアイテムが存在するかテスト
         PaginationItemResult<T> testResult = pagination.getBuildPaginationItem().build(paginationT, currentPage + 1, 0);
         if (testResult.getItem() != null) {
             state.setLastPage(false);
         }
     }
     
-    // 指定された行が指定されたIDの最後のItems行かどうかを判定
     private boolean isLastItemsRow(String id, int rowIndex) {
         for (int i = rowIndex + 1; i < layout.size(); i++) {
             if (layout.get(i).equals(id + ":Items")) {
@@ -192,17 +191,14 @@ public class CustomInventory<T> {
             return;
         }
         
-        // クリア
         for (int j = 0; j < 9; j++) {
             inventory.setItem(i * 9 + j, null);
         }
         
-        // 戻るボタン
         if (state.getCurrentPage() == 0) {
             // 最初のページでは戻るボタンを表示しない
         } else {
             CustomClickItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
-                // 戻るボタン用のアイテム
                 ItemStack itemStack = new ItemStack(org.bukkit.Material.ARROW);
                 ItemMeta meta = itemStack.getItemMeta();
                 meta.setDisplayName("§f< 戻る");
@@ -210,7 +206,6 @@ public class CustomInventory<T> {
                 return itemStack;
             }, (onClickRaw, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() - 1);
-                // データを再取得してページネーションを更新
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                     T paginationT = paginations.get(id).getFetch().fetch();
                     if (paginationT != null) {
@@ -224,7 +219,6 @@ public class CustomInventory<T> {
             paginationCustomItems.put(customItem.getUUID(), customItem);
         }
         
-        // ページ番号表示
         CustomItem<T> pageNumberItem = new CustomItem<>(' ', (data) -> {
             ItemStack pageItem = new ItemStack(org.bukkit.Material.PAPER);
             ItemMeta meta = pageItem.getItemMeta();
@@ -236,12 +230,10 @@ public class CustomInventory<T> {
         inventory.setItem(i * 9 + 4, pageNumberStack);
         paginationCustomItems.put(pageNumberItem.getUUID(), pageNumberItem);
         
-        // 次へボタン
         if (state.isLastPage()) {
             // 最後のページでは次へボタンを表示しない
         } else {
             CustomClickItem<T> customItem = new CustomClickItem<>(' ', (data) -> {
-                // 次へボタン用のアイテム
                 ItemStack itemStack = new ItemStack(org.bukkit.Material.ARROW);
                 ItemMeta meta = itemStack.getItemMeta();
                 meta.setDisplayName("§f次へ >");
@@ -249,7 +241,6 @@ public class CustomInventory<T> {
                 return itemStack;
             }, (clickEvent, itemStack, t) -> {
                 state.setCurrentPage(state.getCurrentPage() + 1);
-                // データを再取得してページネーションを更新
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                     T paginationT = paginations.get(id).getFetch().fetch();
                     if (paginationT != null) {
@@ -265,14 +256,12 @@ public class CustomInventory<T> {
     }
 
     private void buildPagination(String specificLine, HashMap<String, T> paginationFetch) {
-        // メインスレッドでUIを更新
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            // 古いページネーションアイテムをクリア
-            paginationCustomItems.clear();
+        Bukkit.getScheduler().runTask(plugin, () -> {paginationCustomItems.clear();
             
+            String idPrefix = specificLine + ":";
             for (int j = 0; j < layout.size(); j++) {
                 String layoutLine = layout.get(j);
-                if (layoutLine.equalsIgnoreCase(specificLine + ":Items")) {
+                if (layoutLine.startsWith(idPrefix) && layoutLine.endsWith(":Items")) {
                     buildPaginationItems(layoutLine, j, paginationFetch);
                 }
             }
@@ -298,6 +287,16 @@ public class CustomInventory<T> {
 
     public Inventory getInventory() {
         return inventory;
+    }
+    
+    private int countItemsRows(String id) {
+        int count = 0;
+        for (String layoutLine : layout) {
+            if (layoutLine.equals(id + ":Items")) {
+                count++;
+            }
+        }
+        return count;
     }
 
 }
