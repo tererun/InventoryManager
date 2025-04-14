@@ -129,23 +129,17 @@ public class CustomInventory<T> {
         
         int itemRowsCount = countItemsRows(id);
         int itemsPerPage = itemRowsCount * 9;
-        int startIndex = itemRowIndex * 9;
+        int rowOffset = itemRowIndex * 9;
         
         state.setLastPage(true);
-        
-        int totalItems = 0;
-        boolean foundItems = false;
-        
+
         for (int j = 0; j < 9; j++) {
-            int actualIndex = currentPage * itemsPerPage + startIndex + j;
+            int actualIndex = (currentPage * itemsPerPage) + rowOffset + j;
             
             PaginationItemResult<T> result = pagination.getBuildPaginationItem().build(paginationT, currentPage, actualIndex);
             CustomItem<T> customItem = result.getItem();
             if (customItem == null) continue;
-            
-            foundItems = true;
-            totalItems++;
-            
+
             ItemStack itemStack = customItem.build(paginationT, plugin, CustomItemType.PAGINATION);
             inventory.setItem(i * 9 + j, itemStack);
             paginationCustomItems.put(customItem.getUUID(), customItem);
